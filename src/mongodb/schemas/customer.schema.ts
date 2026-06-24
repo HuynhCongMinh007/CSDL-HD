@@ -1,0 +1,57 @@
+export const CustomerSchema = {
+	$schema: 'http://json-schema.org/draft-07/schema#',
+	title: 'Customer_Schema',
+	description: 'Collection lưu trữ hồ sơ khách hàng, nhúng danh sách địa chỉ giao hàng',
+	bsonType: 'object',
+	required: ['customer_id', 'full_name', 'phone_number', 'status', 'created_at'],
+	properties: {
+		customer_id: { bsonType: 'string', description: 'Mã định danh duy nhất của khách hàng' },
+		full_name: { bsonType: 'string', description: 'Họ tên khách hàng' },
+		phone_number: { bsonType: 'string', description: 'Số điện thoại đăng ký' },
+		email: { bsonType: 'string', description: 'Email khách hàng' },
+		password_hash: { bsonType: 'string', description: 'Mật khẩu đã được mã hóa' },
+		avatar_url: { bsonType: 'string', description: 'URL ảnh đại diện' },
+		gender: { enum: ['male', 'female', 'undisclosed'], description: 'Giới tính: nam / nữ / không tiết lộ' },
+		date_of_birth: { bsonType: 'date', description: 'Ngày sinh' },
+		status: { enum: ['active', 'inactive', 'banned'], description: 'Trạng thái tài khoản khách hàng' },
+		addresses: {
+			bsonType: 'array',
+			description: 'Danh sách địa chỉ giao hàng (nhúng vì số lượng nhỏ, trung bình ~2.5 địa chỉ/khách)',
+			items: {
+				bsonType: 'object',
+				required: ['address_id', 'receiver_name', 'receiver_phone', 'address_line', 'location'],
+				properties: {
+					address_id: { bsonType: 'string', description: 'Mã địa chỉ' },
+					receiver_name: { bsonType: 'string', description: 'Tên người nhận' },
+					receiver_phone: { bsonType: 'string', description: 'Số điện thoại người nhận' },
+					address_line: { bsonType: 'string', description: 'Địa chỉ chi tiết' },
+					ward: { bsonType: 'string', description: 'Phường / xã' },
+					city: { bsonType: 'string', description: 'Thành phố' },
+					location: {
+						bsonType: 'object',
+						description: 'Định vị không gian GeoJSON (Chuyển đổi từ latitude/longitude gốc)',
+						required: ['type', 'coordinates'],
+						properties: {
+							type: { enum: ['Point'] },
+							coordinates: {
+								bsonType: 'array',
+								minItems: 2,
+								maxItems: 2,
+								items: { bsonType: 'double' },
+								description: '[Kinh độ (Longitude), Vĩ độ (Latitude)]',
+							},
+						},
+					},
+					label: { enum: ['home', 'work', 'other'], description: 'Phân loại/Nhãn địa chỉ: nhà riêng / công ty / khác' },
+					is_default: { bsonType: 'bool', description: 'Có phải địa chỉ mặc định không' },
+					created_at: { bsonType: 'date', description: 'Thời điểm tạo địa chỉ' },
+					updated_at: { bsonType: 'date', description: 'Thời điểm cập nhật địa chỉ gần nhất' },
+				},
+			},
+		},
+		created_at: { bsonType: 'date', description: 'Thời điểm tạo tài khoản' },
+		updated_at: { bsonType: 'date', description: 'Thời điểm cập nhật gần nhất' },
+		last_login_at: { bsonType: 'date', description: 'Lần đăng nhập gần nhất' },
+	},
+};
+

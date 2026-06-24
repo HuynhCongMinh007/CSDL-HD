@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 export class GetComboSuggestionDto {
     @IsNotEmpty({ message: 'Mã món ăn gốc (dishId) không được để trống' })
     @IsString({ message: 'dishId must be a string' })
-    dishId: string;
+    dishId: string = "1";
 
     @IsOptional()
     @Type(() => Number)
