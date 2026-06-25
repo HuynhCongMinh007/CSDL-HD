@@ -4,7 +4,7 @@ import { Db, Collection, ObjectId } from 'mongodb';
 @Injectable()
 export class CustomerRepository {
 
-/*   private collection: Collection<any>;
+  private readonly collection: Collection<any>;
 
   constructor(
     @Inject('MONGO_DB')
@@ -14,6 +14,21 @@ export class CustomerRepository {
       this.db.collection('customers');
   }
 
+  async getDefaultLocation(id: string): Promise<[number, number] | null> {
+    const customer = await this.collection.findOne(
+      { _id: new ObjectId(id), 'addresses.is_default': true },
+      {
+        projection: {
+          'addresses.$': 1,
+        },
+      },
+    );
+
+    const coordinates = customer?.addresses?.[0]?.location?.coordinates;
+    return Array.isArray(coordinates) && coordinates.length === 2 ? coordinates as [number, number] : null;
+  }
+
+  /*
   async create(customer: any) {
 
     return this.collection.insertOne(

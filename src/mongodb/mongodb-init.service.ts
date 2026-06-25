@@ -2,9 +2,9 @@ import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { Db } from 'mongodb';
 import { CustomerSchema } from './schemas/customer.schema';
 import { RestaurantProfileSchema } from './schemas/restaurant.schema';
-import { RestaurantReviewSchema } from './schemas/restaurant-review.schema';
-import { OrderSchema } from './schemas/order.schema';
-import { OrderReviewSchema } from './schemas/order-review.schema';
+// import { RestaurantReviewSchema } from './schemas/restaurant-review.schema';
+// import { OrderSchema } from './schemas/order.schema';
+// import { OrderReviewSchema } from './schemas/order-review.schema';
 
 @Injectable()
 export class MongoInitService implements OnModuleInit {
@@ -38,12 +38,22 @@ export class MongoInitService implements OnModuleInit {
     }
   }
 
+  private async ensureIndexes() {
+    await this.db.collection('restaurants').createIndex({ 'basic_info.location': '2dsphere' });
+    await this.db.collection('restaurants').createIndex({ 'basic_info.restaurant_name': 'text', 'brand_info.search_tags': 'text' });
+    await this.db.collection('customers').createIndex(
+      { 'addresses.location': '2dsphere' },
+      { name: 'idx_addresses_location_2dsphere', background: true },
+    );
+  }
+
   async onModuleInit() {
     // Ensure collections and validators exist for known schemas
     await this.ensureCollection('customers', CustomerSchema);
     await this.ensureCollection('restaurants', RestaurantProfileSchema);
-    await this.ensureCollection('orders', OrderSchema);
-    await this.ensureCollection('reviews', RestaurantReviewSchema);
-    await this.ensureCollection('order_reviews', OrderReviewSchema);
+    //await this.ensureCollection('orders', OrderSchema);
+    //await this.ensureCollection('reviews', RestaurantReviewSchema);
+    //await this.ensureCollection('order_reviews', OrderReviewSchema);
+    await this.ensureIndexes();
   }
 }

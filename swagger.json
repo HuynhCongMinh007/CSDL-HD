@@ -1,0 +1,159 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/recommendations/combo-suggestions": {
+      "get": {
+        "operationId": "RestaurantController_getComboSuggestions",
+        "parameters": [
+          {
+            "name": "dishId",
+            "required": true,
+            "in": "query",
+            "description": "ID món ăn gốc",
+            "schema": {
+              "example": "dish_001",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Số lượng gợi ý",
+            "schema": {
+              "default": 3,
+              "example": 3,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Restaurant"
+        ]
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "RestaurantController_searchRestaurants",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Từ khóa tìm kiếm",
+            "schema": {
+              "example": "pizza",
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "customer123",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Restaurant"
+        ]
+      }
+    },
+    "/api/v1/customers/{customerId}/orders/history": {
+      "get": {
+        "operationId": "CustomerController_getOrderHistory",
+        "parameters": [
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "cust_123",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 10,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "desc",
+              "example": "asc",
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastOrderedAt",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastOrderId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "order_123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Customer",
+          "Customer"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Restaurant API",
+    "description": "API documentation",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {}
+  }
+}

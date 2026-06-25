@@ -2,10 +2,6 @@ import { Injectable, Inject } from '@nestjs/common';
 import neo4j, { Driver } from 'neo4j-driver';
 import { GetComboSuggestionDto } from './dto/get-combo-suggestion.dto';
 import { SearchDto } from './dto/search.dto';
-import { MONGO_DB } from 'src/mongodb/mongodb.module';
-import { CASSANDRA_CLIENT } from 'src/cassandra/cassandra.module';
-import { Db } from 'mongodb';
-import { Client } from 'cassandra-driver';
 import {
   RestaurantRepository,
   RestaurantSearchResult,
@@ -55,8 +51,8 @@ export class RestaurantService {
     const { q, limit } = searchDto;
     try {
       const [restaurantsByName, restaurantsByDish] = await Promise.all([
-        this.restaurantRepository.findRestaurantByName(q),
-        this.restaurantRepository.findDishByName(q),
+        this.restaurantRepository.findRestaurantByName(q, searchDto.customerId),
+        this.restaurantRepository.findDishByName(q, searchDto.customerId),
       ]);
 
       const mergedMap = new Map<string, RestaurantSearchResult & { matchType: 'restaurant_name' | 'dish_name' | 'both' }>();

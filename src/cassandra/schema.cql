@@ -1,3 +1,7 @@
+CREATE KEYSPACE IF NOT EXISTS food_delivery WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+
+USE food_delivery;
+
 CREATE TABLE customer_order_history (
     customer_id    text,
     ordered_at     timestamp,
