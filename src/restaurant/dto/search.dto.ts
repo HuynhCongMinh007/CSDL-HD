@@ -11,8 +11,8 @@ export class SearchDto {
     q: string = "";
 
     @ApiPropertyOptional({
-    example: 'customer123'
-  })
+    example: 'cust_1721973133_00006'
+    })
     @IsOptional()
     @IsString({ message: 'customerId must be a string' })
     customerId?: string;

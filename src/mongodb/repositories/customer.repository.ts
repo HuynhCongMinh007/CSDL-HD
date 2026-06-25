@@ -15,16 +15,28 @@ export class CustomerRepository {
   }
 
   async getDefaultLocation(id: string): Promise<[number, number] | null> {
-    const customer = await this.collection.findOne(
-      { _id: new ObjectId(id), 'addresses.is_default': true },
-      {
-        projection: {
-          'addresses.$': 1,
-        },
-      },
-    );
+    const customer = await this.collection.aggregate([
+  {
+    $match: {
+      customer_id: id,
+    }
+  },
+  {
+    $project: {
+      customer_id: 1,
+      addresses: {
+        $filter: {
+          input: '$addresses',
+          as: 'addr',
+          cond: { $eq: ['$$addr.is_default', true] }
+        }
+      }
+    }
+  }
+]).toArray();
 
-    const coordinates = customer?.addresses?.[0]?.location?.coordinates;
+    const result = customer[0] as any;
+    const coordinates = result?.addresses?.[0]?.location?.coordinates;
     return Array.isArray(coordinates) && coordinates.length === 2 ? coordinates as [number, number] : null;
   }
 

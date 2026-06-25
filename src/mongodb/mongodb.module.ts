@@ -1,5 +1,6 @@
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { MongoClient } from 'mongodb';
+import { MongoInitService } from './mongodb-init.service';
 
 export interface MongoModuleOptions {
   uri: string;
@@ -33,7 +34,7 @@ export class MongodbModule {
 
     return {
       module: MongodbModule,
-      providers: [mongoClientProvider, mongoDbProvider],
+      providers: [mongoClientProvider, mongoDbProvider, MongoInitService],
       exports: [MONGO_CLIENT, MONGO_DB],
       global: true,
     };

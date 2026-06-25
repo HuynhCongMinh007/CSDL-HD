@@ -31,7 +31,7 @@ export class OrderHistoryDto {
 
 
   @ApiPropertyOptional({
-    example: 'order_123',
+    example: 'item_1_1_26076',
   })
   @IsOptional()
   @IsString()

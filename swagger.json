@@ -11,7 +11,7 @@
             "in": "query",
             "description": "ID món ăn gốc",
             "schema": {
-              "example": "dish_001",
+              "example": "item_1_1_26076",
               "type": "string"
             }
           },
@@ -56,7 +56,7 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "customer123",
+              "example": "cust_1721973133_00006",
               "type": "string"
             }
           },
@@ -128,7 +128,7 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "order_123",
+              "example": "item_1_1_26076",
               "type": "string"
             }
           }

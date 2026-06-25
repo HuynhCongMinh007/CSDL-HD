@@ -5,7 +5,7 @@ import { Type } from 'class-transformer';
 
 export class GetComboSuggestionDto {
       @ApiProperty({
-    example: 'dish_001',
+    example: 'item_1_1_26076',
     description: 'ID món ăn gốc'
   })
     @IsNotEmpty({ message: 'Mã món ăn gốc (dishId) không được để trống' })

@@ -18,16 +18,19 @@ export interface RestaurantSearchResult {
   };
   top_dishes: Array<{
     item_id: string;
+    name: string;
     discount_price?: number;
     image_url?: string;
   }>;
-  distance?: number;
+  distance?: number; // Đơn vị: m (mét, meter)
 }
 
 @Injectable()
 export class RestaurantRepository {
 
   private readonly collection: Collection<any>;
+  // Fallback location: Hà Nội, Việt Nam (khi customer không có default location)
+  private readonly FALLBACK_LOCATION: [number, number] = [105.8, 21.0];
 
   constructor(
     @Inject('MONGO_DB')
@@ -35,6 +38,19 @@ export class RestaurantRepository {
     private readonly customerRepository: CustomerRepository,
   ) {
     this.collection = this.db.collection('restaurants');
+  }
+
+  /**
+   * Lấy location của customer, nếu không có thì dùng fallback
+   */
+  private async getCustomerLocation(customerId: string): Promise<[number, number] | null> {
+    try {
+      const location = await this.customerRepository.getDefaultLocation(customerId);
+      return location || this.FALLBACK_LOCATION;
+    } catch (error) {
+      console.warn(`Failed to get location for customer ${customerId}, using fallback:`, error);
+      return this.FALLBACK_LOCATION;
+    }
   }
 /*
   async create(customer: any) {
@@ -54,12 +70,17 @@ export class RestaurantRepository {
   }
 */
 
+  /**
+   * Tìm nhà hàng theo tên với hỗ trợ tính khoảng cách
+   * @param name - Từ khóa tìm kiếm tên nhà hàng
+   * @param customerId - ID khách hàng (tùy chọn, để tính khoảng cách)
+   * @returns Danh sách nhà hàng với khoảng cách (nếu có customerId)
+   */
   async findRestaurantByName(name: string, customerId?: string): Promise<RestaurantSearchResult[]> {
-    const customerLocation = customerId
-      ? await this.customerRepository.getDefaultLocation(customerId)
-      : null;
-
-    if (customerLocation) {
+    // Nếu có customerId, luôn cố gắng tính khoảng cách
+    if (customerId) {
+      const customerLocation = await this.getCustomerLocation(customerId);
+      
       const pipeline = [
         {
           $geoNear: {
@@ -67,14 +88,15 @@ export class RestaurantRepository {
             distanceField: 'distance',
             query: { 'basic_info.restaurant_name': { $regex: name, $options: 'i' } },
             spherical: true,
+            maxDistance: 50000, // 50km
           },
         },
         {
           $project: {
             restaurant_id: 1,
             basic_info: 1,
-            'brand_info.avatar_url': 1,
-            'performance_metric.average_rating': 1,
+            brand_info: { avatar_url: '$brand_info.avatar_url' },
+            performance_metric: { average_rating: '$performance_metric.average_rating' },
             menu: 1,
             distance: 1,
           },
@@ -85,6 +107,7 @@ export class RestaurantRepository {
       return docs.map((doc) => this.mapToSearchResult(doc));
     }
 
+    // Nếu không có customerId, tìm kiếm bình thường (không có khoảng cách)
     return this.collection
       .find(
         {
@@ -94,8 +117,8 @@ export class RestaurantRepository {
           projection: {
             restaurant_id: 1,
             basic_info: 1,
-            'brand_info.avatar_url': 1,
-            'performance_metric.average_rating': 1,
+            brand_info: { avatar_url: '$brand_info.avatar_url' },
+            performance_metric: { average_rating: '$performance_metric.average_rating' },
             menu: 1,
           },
         },
@@ -104,12 +127,17 @@ export class RestaurantRepository {
       .toArray();
   }
 
+  /**
+   * Tìm nhà hàng theo tên món ăn với hỗ trợ tính khoảng cách
+   * @param name - Từ khóa tìm kiếm tên món ăn
+   * @param customerId - ID khách hàng (tùy chọn, để tính khoảng cách)
+   * @returns Danh sách nhà hàng có món ăn khớp với khoảng cách (nếu có customerId)
+   */
   async findDishByName(name: string, customerId?: string): Promise<RestaurantSearchResult[]> {
-    const customerLocation = customerId
-      ? await this.customerRepository.getDefaultLocation(customerId)
-      : null;
+    // Nếu có customerId, luôn cố gắng tính khoảng cách
+    if (customerId) {
+      const customerLocation = await this.getCustomerLocation(customerId);
 
-    if (customerLocation) {
       return this.collection
         .aggregate<RestaurantSearchResult>([
           {
@@ -120,6 +148,7 @@ export class RestaurantRepository {
                 'menu.categories.menu_items.name': { $regex: name, $options: 'i' },
               },
               spherical: true,
+              maxDistance: 50000, // 50km
             },
           },
           { $unwind: '$menu.categories' },
@@ -140,6 +169,7 @@ export class RestaurantRepository {
               matched_items: {
                 $push: {
                   item_id: '$menu.categories.menu_items.item_id',
+                  name: '$menu.categories.menu_items.name',
                   discount_price: '$menu.categories.menu_items.discount_price',
                   image_url: '$menu.categories.menu_items.image_url',
                 },
@@ -163,6 +193,7 @@ export class RestaurantRepository {
                       as: 'item',
                       in: {
                         item_id: '$$item.item_id',
+                        name: '$$item.name',
                         discount_price: '$$item.discount_price',
                         image_url: '$$item.image_url',
                       },
@@ -177,6 +208,7 @@ export class RestaurantRepository {
         .toArray();
     }
 
+    // Nếu không có customerId, tìm kiếm bình thường (không tính khoảng cách)
     return this.collection
       .aggregate<RestaurantSearchResult>([
         { $unwind: '$menu.categories' },
@@ -199,6 +231,7 @@ export class RestaurantRepository {
             matched_items: {
               $push: {
                 item_id: '$menu.categories.menu_items.item_id',
+                name: '$menu.categories.menu_items.name',
                 discount_price: '$menu.categories.menu_items.discount_price',
                 image_url: '$menu.categories.menu_items.image_url',
               },
@@ -221,6 +254,7 @@ export class RestaurantRepository {
                     as: 'item',
                     in: {
                       item_id: '$$item.item_id',
+                      name: '$$item.name',
                       discount_price: '$$item.discount_price',
                       image_url: '$$item.image_url',
                     },
@@ -248,6 +282,7 @@ export class RestaurantRepository {
           if (item?.item_id) {
             top_dishes.push({
               item_id: item.item_id,
+              name: item.name,
               discount_price: item.discount_price,
               image_url: item.image_url,
             });

@@ -12,7 +12,7 @@ export class MongoInitService implements OnModuleInit {
 
   private async ensureCollection(name: string, schema: object) {
     const cols = await this.db.listCollections({ name }).toArray();
-    const validator = { $jsonSchema: schema };
+    const validator = { $jsonSchema: this.toMongoSchema(schema) };
 
     if (cols.length === 0) {
       await this.db.createCollection(name, {
@@ -36,6 +36,17 @@ export class MongoInitService implements OnModuleInit {
       // eslint-disable-next-line no-console
       console.warn(`Could not update validator for collection ${name}:`, (err as Error).message || err);
     }
+  }
+
+  private async toMongoSchema(schema: any) {
+    const clone = structuredClone(schema);
+
+    delete clone.$schema;
+    delete clone.title;
+    delete clone.$id;
+    delete clone.$defs;
+
+    return clone;
   }
 
   private async ensureIndexes() {
