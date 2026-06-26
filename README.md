@@ -96,3 +96,7 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+Khuyến cáo:
+Nhớ check các tên service (đến từ docker-compose) trong tệp .env.
+Chỉ dùng các tên service này khi backend cũng chạy trong Docker Compose. Nếu chạy NestJS trực tiếp trên máy bằng npm run start:dev, thì mongodb, redis, neo4j, cassandra sẽ không được máy tính phân giải, và khi đó phải sửa lại thành localhost.
