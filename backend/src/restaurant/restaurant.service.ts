@@ -64,13 +64,41 @@ export class RestaurantService {
     if (!data || data.length === 0) {
       throw new NotFoundException('Top dishes not found for the given date');
     }
+
+    // Lấy thông tin menu để map hình ảnh và giá
+    let menuData: any = null;
+    try {
+      const menuRaw = await this.redisService.get(`rest:${restaurantId}:menu`);
+      if (menuRaw) {
+        menuData = JSON.parse(menuRaw);
+      }
+    } catch (e) {
+      console.warn('Could not fetch menu for mapping top dishes');
+    }
+
+    const itemMap = new Map<string, any>();
+    if (menuData && menuData.categories) {
+      menuData.categories.forEach((cat: any) => {
+        if (cat.menu_items) {
+          cat.menu_items.forEach((item: any) => {
+            itemMap.set(item.item_id, item);
+          });
+        }
+      });
+    }
+
     return data.map(item => {
       // The dish format in ZSET is usually "dishId:Dish Name"
       const [dish_id, ...nameParts] = item.value.split(':');
+      const menuItem = itemMap.get(dish_id);
+
       return {
         dish_id,
         dish_name: nameParts.join(':'),
         sales: item.score,
+        image_url: menuItem?.image_url || null,
+        base_price: menuItem?.base_price || 0,
+        discount_price: menuItem?.discount_price || 0,
       };
     });
   }
