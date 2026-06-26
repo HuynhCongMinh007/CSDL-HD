@@ -18,7 +18,6 @@ export class Api {
       : '';
 
     const url = `${this.baseURL}${endpoint}${queryString}`;
-
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
