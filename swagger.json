@@ -69,6 +69,17 @@
               "example": 20,
               "type": "number"
             }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Trang kết quả (bắt đầu từ 1)",
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
           }
         ],
         "responses": {

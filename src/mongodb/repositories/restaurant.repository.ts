@@ -25,6 +25,18 @@ export interface RestaurantSearchResult {
   distance?: number; // Đơn vị: m (mét, meter)
 }
 
+export interface PaginationInfo {
+  current_page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+}
+
+export interface PaginatedSearchResult {
+  data: RestaurantSearchResult[];
+  pagination: PaginationInfo;
+}
+
 @Injectable()
 export class RestaurantRepository {
 
@@ -71,15 +83,39 @@ export class RestaurantRepository {
 */
 
   /**
-   * Tìm nhà hàng theo tên với hỗ trợ tính khoảng cách
+   * Tìm nhà hàng theo tên với hỗ trợ tính khoảng cách và phân trang
    * @param name - Từ khóa tìm kiếm tên nhà hàng
    * @param customerId - ID khách hàng (tùy chọn, để tính khoảng cách)
-   * @returns Danh sách nhà hàng với khoảng cách (nếu có customerId)
+   * @param page - Trang kết quả (bắt đầu từ 1), mặc định là 1
+   * @param limit - Số lượng kết quả trên mỗi trang, mặc định là 20
+   * @returns Danh sách nhà hàng với khoảng cách (nếu có customerId) và thông tin phân trang
    */
-  async findRestaurantByName(name: string, customerId?: string): Promise<RestaurantSearchResult[]> {
+  async findRestaurantByName(name: string, customerId?: string, page: number = 1, limit: number = 20): Promise<PaginatedSearchResult> {
+    limit = limit / 2;
+    const skip = (Math.max(page, 1) - 1) * limit;
+    
     // Nếu có customerId, luôn cố gắng tính khoảng cách
     if (customerId) {
       const customerLocation = await this.getCustomerLocation(customerId);
+      
+      // Tính tổng số kết quả cho phân trang
+      const countPipeline = [
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: customerLocation },
+            distanceField: 'distance',
+            query: { 'basic_info.restaurant_name': { $regex: name, $options: 'i' } },
+            spherical: true,
+            maxDistance: 50000, // 50km
+          },
+        },
+        {
+          $count: 'total',
+        },
+      ];
+
+      const countResult = await this.collection.aggregate(countPipeline).toArray();
+      const totalItems = countResult.length > 0 ? countResult[0].total : 0;
       
       const pipeline = [
         {
@@ -91,6 +127,8 @@ export class RestaurantRepository {
             maxDistance: 50000, // 50km
           },
         },
+        { $skip: skip },
+        { $limit: limit },
         {
           $project: {
             restaurant_id: 1,
@@ -104,11 +142,25 @@ export class RestaurantRepository {
       ];
 
       const docs = await this.collection.aggregate(pipeline).toArray();
-      return docs.map((doc) => this.mapToSearchResult(doc));
+      const data = docs.map((doc) => this.mapToSearchResult(doc));
+      
+      return {
+        data,
+        pagination: {
+          current_page: Math.max(page, 1),
+          page_size: limit,
+          total_items: totalItems,
+          total_pages: Math.ceil(totalItems / limit),
+        },
+      };
     }
 
     // Nếu không có customerId, tìm kiếm bình thường (không có khoảng cách)
-    return this.collection
+    const totalItems = await this.collection.countDocuments({
+      'basic_info.restaurant_name': { $regex: name, $options: 'i' },
+    });
+
+    const data = await this.collection
       .find(
         {
           'basic_info.restaurant_name': { $regex: name, $options: 'i' },
@@ -121,95 +173,182 @@ export class RestaurantRepository {
             performance_metric: { average_rating: '$performance_metric.average_rating' },
             menu: 1,
           },
+          skip,
+          limit,
         },
       )
       .map((doc) => this.mapToSearchResult(doc))
       .toArray();
+
+    return {
+      data,
+      pagination: {
+        current_page: Math.max(page, 1),
+        page_size: limit,
+        total_items: totalItems,
+        total_pages: Math.ceil(totalItems / limit),
+      },
+    };
   }
 
   /**
-   * Tìm nhà hàng theo tên món ăn với hỗ trợ tính khoảng cách
+   * Tìm nhà hàng theo tên món ăn với hỗ trợ tính khoảng cách và phân trang
    * @param name - Từ khóa tìm kiếm tên món ăn
    * @param customerId - ID khách hàng (tùy chọn, để tính khoảng cách)
-   * @returns Danh sách nhà hàng có món ăn khớp với khoảng cách (nếu có customerId)
+   * @param page - Trang kết quả (bắt đầu từ 1), mặc định là 1
+   * @param limit - Số lượng kết quả trên mỗi trang, mặc định là 20
+   * @returns Danh sách nhà hàng có món ăn khớp với khoảng cách (nếu có customerId) và thông tin phân trang
    */
-  async findDishByName(name: string, customerId?: string): Promise<RestaurantSearchResult[]> {
+  async findDishByName(name: string, customerId?: string, page: number = 1, limit: number = 20): Promise<PaginatedSearchResult> {
+    limit = limit / 2;
+    const skip = (Math.max(page, 1) - 1) * limit;
+    
     // Nếu có customerId, luôn cố gắng tính khoảng cách
     if (customerId) {
       const customerLocation = await this.getCustomerLocation(customerId);
 
-      return this.collection
-        .aggregate<RestaurantSearchResult>([
-          {
-            $geoNear: {
-              near: { type: 'Point', coordinates: customerLocation },
-              distanceField: 'distance',
-              query: {
-                'menu.categories.menu_items.name': { $regex: name, $options: 'i' },
-              },
-              spherical: true,
-              maxDistance: 50000, // 50km
-            },
-          },
-          { $unwind: '$menu.categories' },
-          { $unwind: '$menu.categories.menu_items' },
-          {
-            $match: {
+      // Tính tổng số kết quả cho phân trang
+      const countPipeline = [
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: customerLocation },
+            distanceField: 'distance',
+            query: {
               'menu.categories.menu_items.name': { $regex: name, $options: 'i' },
             },
+            spherical: true,
+            maxDistance: 50000, // 50km
           },
-          {
-            $group: {
-              _id: '$restaurant_id',
-              restaurant_id: { $first: '$restaurant_id' },
-              basic_info: { $first: '$basic_info' },
-              brand_info: { $first: '$brand_info' },
-              performance_metric: { $first: '$performance_metric' },
-              distance: { $first: '$distance' },
-              matched_items: {
-                $push: {
-                  item_id: '$menu.categories.menu_items.item_id',
-                  name: '$menu.categories.menu_items.name',
-                  discount_price: '$menu.categories.menu_items.discount_price',
-                  image_url: '$menu.categories.menu_items.image_url',
-                },
+        },
+        { $unwind: '$menu.categories' },
+        { $unwind: '$menu.categories.menu_items' },
+        {
+          $match: {
+            'menu.categories.menu_items.name': { $regex: name, $options: 'i' },
+          },
+        },
+        {
+          $group: {
+            _id: '$restaurant_id',
+          },
+        },
+        {
+          $count: 'total',
+        },
+      ];
+
+      const countResult = await this.collection.aggregate(countPipeline).toArray();
+      const totalItems = countResult.length > 0 ? countResult[0].total : 0;
+
+      const pipeline = [
+        {
+          $geoNear: {
+            near: { type: 'Point', coordinates: customerLocation },
+            distanceField: 'distance',
+            query: {
+              'menu.categories.menu_items.name': { $regex: name, $options: 'i' },
+            },
+            spherical: true,
+            maxDistance: 50000, // 50km
+          },
+        },
+        { $unwind: '$menu.categories' },
+        { $unwind: '$menu.categories.menu_items' },
+        {
+          $match: {
+            'menu.categories.menu_items.name': { $regex: name, $options: 'i' },
+          },
+        },
+        {
+          $group: {
+            _id: '$restaurant_id',
+            restaurant_id: { $first: '$restaurant_id' },
+            basic_info: { $first: '$basic_info' },
+            brand_info: { $first: '$brand_info' },
+            performance_metric: { $first: '$performance_metric' },
+            distance: { $first: '$distance' },
+            matched_items: {
+              $push: {
+                item_id: '$menu.categories.menu_items.item_id',
+                name: '$menu.categories.menu_items.name',
+                discount_price: '$menu.categories.menu_items.discount_price',
+                image_url: '$menu.categories.menu_items.image_url',
               },
             },
           },
-          {
-            $project: {
-              restaurant_id: 1,
-              basic_info: 1,
-              brand_info: { avatar_url: '$brand_info.avatar_url' },
-              performance_metric: { average_rating: '$performance_metric.average_rating' },
-              distance: 1,
-              top_dishes: {
-                $slice: [
-                  {
-                    $map: {
-                      input: {
-                        $slice: ['$matched_items', 6],
-                      },
-                      as: 'item',
-                      in: {
-                        item_id: '$$item.item_id',
-                        name: '$$item.name',
-                        discount_price: '$$item.discount_price',
-                        image_url: '$$item.image_url',
-                      },
+        },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            restaurant_id: 1,
+            basic_info: 1,
+            brand_info: { avatar_url: '$brand_info.avatar_url' },
+            performance_metric: { average_rating: '$performance_metric.average_rating' },
+            distance: 1,
+            top_dishes: {
+              $slice: [
+                {
+                  $map: {
+                    input: {
+                      $slice: ['$matched_items', 6],
+                    },
+                    as: 'item',
+                    in: {
+                      item_id: '$$item.item_id',
+                      name: '$$item.name',
+                      discount_price: '$$item.discount_price',
+                      image_url: '$$item.image_url',
                     },
                   },
-                  6,
-                ],
-              },
+                },
+                6,
+              ],
             },
           },
-        ])
-        .toArray();
+        },
+      ];
+
+      const docs = await this.collection.aggregate(pipeline).toArray();
+      const data = docs.map((doc) => this.mapToSearchResult(doc));
+
+      return {
+        data,
+        pagination: {
+          current_page: Math.max(page, 1),
+          page_size: limit,
+          total_items: totalItems,
+          total_pages: Math.ceil(totalItems / limit),
+        },
+      };
     }
 
     // Nếu không có customerId, tìm kiếm bình thường (không tính khoảng cách)
-    return this.collection
+    const countPipeline = [
+      { $unwind: '$menu.categories' },
+      { $unwind: '$menu.categories.menu_items' },
+      {
+        $match: {
+          'menu.categories.menu_items.name': {
+            $regex: name,
+            $options: 'i',
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$restaurant_id',
+        },
+      },
+      {
+        $count: 'total',
+      },
+    ];
+
+    const countResult = await this.collection.aggregate(countPipeline).toArray();
+    const totalItems = countResult.length > 0 ? countResult[0].total : 0;
+
+    const data = await this.collection
       .aggregate<RestaurantSearchResult>([
         { $unwind: '$menu.categories' },
         { $unwind: '$menu.categories.menu_items' },
@@ -238,6 +377,8 @@ export class RestaurantRepository {
             },
           },
         },
+        { $skip: skip },
+        { $limit: limit },
         {
           $project: {
             restaurant_id: 1,
@@ -267,6 +408,16 @@ export class RestaurantRepository {
         },
       ])
       .toArray();
+
+    return {
+      data,
+      pagination: {
+        current_page: Math.max(page, 1),
+        page_size: limit,
+        total_items: totalItems,
+        total_pages: Math.ceil(totalItems / limit),
+      },
+    };
   }
 
   private mapToSearchResult(doc: any): RestaurantSearchResult {

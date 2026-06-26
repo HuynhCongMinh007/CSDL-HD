@@ -48,23 +48,23 @@ export class RestaurantService {
   }
 
   async search(searchDto: SearchDto) {
-    const { q, limit } = searchDto;
+    const { q, limit = 20, page = 1, customerId } = searchDto;
     try {
-      const [restaurantsByName, restaurantsByDish] = await Promise.all([
-        this.restaurantRepository.findRestaurantByName(q, searchDto.customerId),
-        this.restaurantRepository.findDishByName(q, searchDto.customerId),
+      const [restaurantsByNameResult, restaurantsByDishResult] = await Promise.all([
+        this.restaurantRepository.findRestaurantByName(q, customerId, page, limit),
+        this.restaurantRepository.findDishByName(q, customerId, page, limit),
       ]);
 
       const mergedMap = new Map<string, RestaurantSearchResult & { matchType: 'restaurant_name' | 'dish_name' | 'both' }>();
 
-      restaurantsByName.forEach((restaurant) => {
+      restaurantsByNameResult.data.forEach((restaurant) => {
         mergedMap.set(restaurant.restaurant_id, {
           ...restaurant,
           matchType: 'restaurant_name',
         });
       });
 
-      restaurantsByDish.forEach((restaurant) => {
+      restaurantsByDishResult.data.forEach((restaurant) => {
         const existing = mergedMap.get(restaurant.restaurant_id);
         if (existing) {
           mergedMap.set(restaurant.restaurant_id, {
@@ -81,20 +81,35 @@ export class RestaurantService {
       });
 
       let data = Array.from(mergedMap.values());
-      if (limit) {
-        data = data.slice(0, limit);
-      }
+      
+      // Tính tổng số items từ cả hai kết quả
+      const totalItems = Math.max(
+        restaurantsByNameResult.pagination.total_items,
+        restaurantsByDishResult.pagination.total_items
+      );
 
       return {
         success: true,
         message: `Đã tìm thấy ${data.length} nhà hàng phù hợp với từ khóa "${q}"`,
         data,
+        pagination: {
+          current_page: Math.max(page, 1),
+          page_size: limit,
+          total_items: totalItems,
+          total_pages: Math.ceil(totalItems / limit * 2),
+        },
       };
     } catch (error) {
       return {
         success: false,
         message: `Lỗi khi tìm kiếm: ${(error as Error).message}`,
         data: [],
+        pagination: {
+          current_page: Math.max(page, 1),
+          page_size: limit,
+          total_items: 0,
+          total_pages: 0,
+        },
       };
     }
   }

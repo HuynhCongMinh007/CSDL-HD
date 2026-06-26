@@ -19,9 +19,9 @@ export class RestaurantController {
 
   @Get('search')
   @ApiQuery({
-  name: 'q',
-  required: true,
-  type: String,
+    name: 'q',
+    required: true,
+    type: String,
   })
   @ApiQuery({
     name: 'customerId',
@@ -32,6 +32,13 @@ export class RestaurantController {
     name: 'limit',
     required: false,
     type: Number,
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
   })
   async searchRestaurants(@Query() searchDto: SearchDto) {
     return this.restaurantService.search(searchDto);
