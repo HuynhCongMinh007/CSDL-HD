@@ -1,0 +1,50 @@
+export const OrderReviewSchema = {
+	$schema: 'http://json-schema.org/draft-07/schema#',
+	title: 'Review_Schema',
+	description: 'Collection lưu trữ đánh giá của khách hàng về đơn hàng, cửa hàng và tài xế',
+	bsonType: 'object',
+	required: [
+		'order_id',
+		'customer_id',
+		'restaurant_id',
+		'restaurant_rating',
+		'food_rating',
+		'delivery_rating',
+		'created_at',
+		'is_verified',
+	],
+	properties: {
+		_id: { bsonType: 'objectId', description: 'Mã định danh duy nhất của đánh giá' },
+		order_id: { bsonType: 'objectId', description: 'Tham chiếu đến đơn hàng được đánh giá' },
+		customer_id: { bsonType: 'objectId', description: 'Tham chiếu đến khách hàng thực hiện đánh giá' },
+		restaurant_id: { bsonType: 'objectId', description: 'Tham chiếu đến cửa hàng được đánh giá' },
+		driver_id: {
+			bsonType: ['objectId', 'null'],
+			description: 'Tham chiếu đến tài xế giao hàng được đánh giá',
+		},
+		restaurant_rating: { bsonType: 'int', minimum: 1, maximum: 5, description: 'Điểm đánh giá cửa hàng (1–5 sao)' },
+		food_rating: { bsonType: 'int', minimum: 1, maximum: 5, description: 'Điểm đánh giá chất lượng món ăn (1–5 sao)' },
+		delivery_rating: { bsonType: 'int', minimum: 1, maximum: 5, description: 'Điểm đánh giá dịch vụ giao hàng (1–5 sao)' },
+		comment: { bsonType: 'string', description: 'Nội dung nhận xét của khách hàng', maxLength: 2000 },
+		images: {
+			bsonType: 'array',
+			description: 'Danh sách hình ảnh minh họa cho đánh giá',
+			items: {
+				bsonType: 'object',
+				properties: {
+					url: { bsonType: 'string', description: 'Đường dẫn URL của hình ảnh' },
+					thumbnail_url: { bsonType: 'string', description: 'Đường dẫn URL của ảnh thumbnail (nếu có)' },
+					uploaded_at: { bsonType: 'date', description: 'Thời điểm upload hình ảnh' },
+				},
+			},
+		},
+		created_at: { bsonType: 'date', description: 'Thời điểm tạo đánh giá' },
+		is_verified: { bsonType: 'bool', description: 'Xác nhận đánh giá đến từ đơn hàng thực tế', default: true },
+		review_window_expires_at: { bsonType: 'date', description: 'Thời hạn cho phép gửi đánh giá (thường là 7-14 ngày sau khi đơn hàng hoàn thành)' },
+		restaurant_reply: { bsonType: ['string', 'null'], description: 'Phản hồi từ cửa hàng đối với đánh giá', maxLength: 1000 },
+		restaurant_replied_at: { bsonType: ['date', 'null'], description: 'Thời điểm cửa hàng phản hồi' },
+		updated_at: { bsonType: 'date', description: 'Thời điểm cập nhật cuối cùng của đánh giá (khi có phản hồi từ cửa hàng hoặc chỉnh sửa)' },
+	},
+	additionalProperties: false,
+};
+
