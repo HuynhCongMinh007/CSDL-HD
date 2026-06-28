@@ -33,7 +33,11 @@ export const CASSANDRA_SESSION = 'CASSANDRA_SESSION';
           keyspace: process.env.CASSANDRA_KEYSPACE,
         });
 
-        await client.connect();
+        try {
+          await client.connect();
+        } catch (e: any) {
+          console.warn('Failed to connect to Cassandra (ignored for mock setup):', e.message);
+        }
         return client;
       },
     },

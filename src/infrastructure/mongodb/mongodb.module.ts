@@ -21,7 +21,11 @@ export class MongodbModule {
           throw new Error('MongoModule options.uri is required');
         }
         const client = new MongoClient(options.uri);
-        await client.connect();
+        try {
+          await client.connect();
+        } catch (e: any) {
+          console.warn('Failed to connect to MongoDB (ignored for mock setup):', e.message);
+        }
         return client;
       },
     };

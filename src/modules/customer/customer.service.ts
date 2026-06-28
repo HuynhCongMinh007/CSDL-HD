@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OrderHistoryDto } from './dto/order-history.dto';
-import { CustomerOrderHistoryRepository } from '../cassandra/repositories/customer-order-history.repository';
+import { CustomerOrderHistoryRepository } from '../../infrastructure/cassandra/repositories/customer-order-history.repository';
 
 @Injectable()
 export class CustomerService {
