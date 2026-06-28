@@ -33,7 +33,7 @@
           }
         },
         "tags": [
-          "Restaurant"
+          "Restaurants"
         ]
       }
     },
@@ -88,7 +88,95 @@
           }
         },
         "tags": [
-          "Restaurant"
+          "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurant/{id}/profile": {
+      "get": {
+        "operationId": "RestaurantController_getRestaurantProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của nhà hàng",
+            "schema": {
+              "example": "123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lấy thông tin cửa hàng thành công."
+          }
+        },
+        "summary": "Lấy thông tin hồ sơ nhà hàng",
+        "tags": [
+          "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurant/{id}/menu": {
+      "get": {
+        "operationId": "RestaurantController_getRestaurantMenu",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của nhà hàng",
+            "schema": {
+              "example": "123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lấy thông tin thực đơn thành công."
+          }
+        },
+        "summary": "Lấy danh sách thực đơn của nhà hàng",
+        "tags": [
+          "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurant/{id}/top-dishes": {
+      "get": {
+        "operationId": "RestaurantController_getTopDishes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của nhà hàng",
+            "schema": {
+              "example": "123",
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Ngày cần xem (YYYY-MM-DD)",
+            "schema": {
+              "example": "2026-06-26",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lấy danh sách top món ăn bán chạy thành công."
+          }
+        },
+        "summary": "Lấy top món ăn bán chạy trong ngày của nhà hàng",
+        "tags": [
+          "Restaurants"
         ]
       }
     },

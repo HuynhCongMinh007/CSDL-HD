@@ -6,7 +6,7 @@ import * as fs from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-    const config = new DocumentBuilder()
+  const config = new DocumentBuilder()
     .setTitle('Restaurant API')
     .setDescription('API documentation')
     .setVersion('1.0')
